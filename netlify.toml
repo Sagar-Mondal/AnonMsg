@@ -10,7 +10,7 @@ directory = "functions"
 publish = "public"
 
 [dev]
-port = 8888
+port = 3300
 publish = "public" 
 autoLaunch = true
 
