@@ -13,3 +13,9 @@ publish = "public"
 port = 8888
 publish = "public" 
 autoLaunch = true
+
+[[redirects]]
+from = "/post-message/*"
+to = "/.netlify/functions/post-message"
+status = 200
+force = true

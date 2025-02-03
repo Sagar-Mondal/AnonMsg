@@ -28,56 +28,46 @@ async fn main() -> Result<(), Error> {
     Ok(())
 }
 
+fn response(status_code: i64, body: String) -> Result<ApiGatewayProxyResponse, Error> {
+    Ok(ApiGatewayProxyResponse {
+        status_code,
+        headers: HeaderMap::new(),
+        multi_value_headers: HeaderMap::new(),
+        body: Some(Body::Text(body)),
+        is_base64_encoded: false,
+    })
+}
+
 pub(crate) async fn post_message_handler(
     event: LambdaEvent<ApiGatewayProxyRequest>,
 ) -> Result<ApiGatewayProxyResponse, Error> {
+    let Some(text) = event.payload.body else {
+        return response(400, "No message provided".to_string());
+    };
+
     let Ok(uri) = env::var("MONGODB_URI") else {
-        return Ok(ApiGatewayProxyResponse {
-            status_code: 500,
-            headers: HeaderMap::new(),
-            multi_value_headers: HeaderMap::new(),
-            body: Some(Body::Text("Database connection error".to_string())),
-            is_base64_encoded: false,
-        });
+        return response(500, "Database connection error".to_string());
     };
 
     log::info!("Connecting to MongoDB at {}", uri);
 
     let Ok(client) = Client::with_uri_str(uri).await else {
-        return Ok(ApiGatewayProxyResponse {
-            status_code: 500,
-            headers: HeaderMap::new(),
-            multi_value_headers: HeaderMap::new(),
-            body: Some(Body::Text("Database connection error".to_string())),
-            is_base64_encoded: false,
-        });
+        return response(500, "Database connection error".to_string());
     };
 
     let database = client.database("anonmsg");
     let messages: Collection<Document> = database.collection("messages");
 
-    let Some(text) = event.payload.body else {
-        return Ok(ApiGatewayProxyResponse {
-            status_code: 400,
-            headers: HeaderMap::new(),
-            multi_value_headers: HeaderMap::new(),
-            body: Some(Body::Text("No message provided".to_string())),
-            is_base64_encoded: false,
-        });
-    };
-
-    messages
+    if messages
         .insert_one(doc! {
             "text": text,
             "timestamp": Utc::now().timestamp()
         })
-        .await?;
+        .await
+        .is_err()
+    {
+        return response(500, "Failed to post message".to_string());
+    }
 
-    Ok(ApiGatewayProxyResponse {
-        status_code: 200,
-        headers: HeaderMap::new(),
-        multi_value_headers: HeaderMap::new(),
-        body: Some(Body::Text("Successfully posted message!".to_string())),
-        is_base64_encoded: false,
-    })
+    response(200, "Successfully posted message".to_string())
 }
