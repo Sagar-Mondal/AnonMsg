@@ -1,7 +1,8 @@
 use aws_lambda_events::{
     encodings::Body,
-    event::apigw::{ApiGatewayProxyRequest, ApiGatewayProxyResponse},
+    event::apigw::ApiGatewayProxyResponse,
 };
+use serde_json::Value;
 use http::header::HeaderMap;
 use lambda_runtime::{service_fn, Error, LambdaEvent};
 use log::LevelFilter;
@@ -39,9 +40,9 @@ fn response(status_code: i64, body: String) -> Result<ApiGatewayProxyResponse, E
 }
 
 pub(crate) async fn post_message_handler(
-    event: LambdaEvent<ApiGatewayProxyRequest>,
+    event: LambdaEvent<Value>,
 ) -> Result<ApiGatewayProxyResponse, Error> {
-    let Some(text) = event.payload.body else {
+    let Some(text) = event.payload.get("body").and_then(|b| b.as_str()) else {
         return response(400, "No message provided".to_string());
     };
 
