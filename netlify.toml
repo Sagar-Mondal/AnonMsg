@@ -19,3 +19,6 @@ from = "/post-message/*"
 to = "/.netlify/functions/post-message"
 status = 200
 force = true
+
+[context.production]
+environment = { NETLIFY_EXPERIMENTAL_BUILD_RUST_SOURCE = "true" }
