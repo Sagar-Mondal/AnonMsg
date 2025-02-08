@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", function () {
   submitButton.addEventListener("click", function () {
     const message = messageBox.value.trim();
     if (!message) {
-      Swal.fire("Error", "Message cannot be empty!", "error");
+      Swal.fire({ title: "Error", icon: "error", text: "Message cannot be empty!", confirmButtonColor: '#A87849' });
       return;
     }
 
@@ -17,13 +17,18 @@ document.addEventListener("DOMContentLoaded", function () {
       method: "POST",
       body: message,
     })
-      .then((response) => response.text())
-.then(data => {
-            Swal.fire({ title: "Success", icon: "success", text: data.message || "Message sent successfully!",  confirmButtonColor: '#A87849' });
-        })
-        .catch(error => {
-            Swal.fire({ title: "Error", icon: "warning", text: error.message || "Something went wrong!", confirmButtonColor: '#A87849' });
-        })
+      .then((response) => {
+        if (!response.ok) {
+          return response.text().then(text => { throw new Error(text || `Error ${response.status}`); });
+        }
+        return response.text();
+      })
+      .then(data => {
+        Swal.fire({ title: "Success", icon: "success", text: "Message sent successfully!", confirmButtonColor: '#A87849' });
+      })
+      .catch(error => {
+        Swal.fire({ title: "Error", icon: "warning", text: "Something went wrong!", confirmButtonColor: '#A87849' });
+      })
       .finally(() => {
         submitButton.disabled = false;
         loadingOverlay.classList.add("hidden");
